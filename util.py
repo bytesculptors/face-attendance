@@ -4,6 +4,7 @@ import pickle
 import tkinter as tk
 from tkinter import messagebox
 import face_recognition
+import numpy as np
 
 
 def get_button(window, text, color, command, fg='white'):
@@ -50,6 +51,8 @@ def recognize(img, db_path):
     # it is assumed there will be at most 1 match in the db
 
     embeddings_unknown = face_recognition.face_encodings(img)
+    print(len(embeddings_unknown))
+    print("-----------------------------------")
     if len(embeddings_unknown) == 0:
         return 'no_persons_found'
     else:
@@ -62,10 +65,19 @@ def recognize(img, db_path):
     while not match and j < len(db_dir):
         path_ = os.path.join(db_path, db_dir[j])
 
-        file = open(path_, 'rb')
-        embeddings = pickle.load(file)
+        try:
+            with open(path_, 'rb') as file:
+                embeddings = pickle.load(file)
+                print(file)
+        except (pickle.UnpicklingError, EOFError) as e:
+            print(f"Error loading file {db_dir[j]}: {e}")
+            j += 1
+            continue
 
         match = face_recognition.compare_faces([embeddings], embeddings_unknown)[0]
+        distance = np.linalg.norm(embeddings - embeddings_unknown)
+        print(distance)
+        print('********************')
         j += 1
 
     if match:
