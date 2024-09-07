@@ -1,10 +1,10 @@
-import os
-import pickle
-
 import tkinter as tk
 from tkinter import messagebox
 import face_recognition
 import numpy as np
+import sqlite3
+import json
+from sklearn.metrics.pairwise import cosine_similarity
 
 
 def get_button(window, text, color, command, fg='white'):
@@ -47,7 +47,7 @@ def msg_box(title, description):
     messagebox.showinfo(title, description)
 
 
-def recognize(img, db_path):
+def recognize(img):
     # it is assumed there will be at most 1 match in the db
 
     embeddings_unknown = face_recognition.face_encodings(img)
@@ -58,29 +58,23 @@ def recognize(img, db_path):
     else:
         embeddings_unknown = embeddings_unknown[0]
 
-    db_dir = sorted(os.listdir(db_path))
-
-    match = False
-    j = 0
-    while not match and j < len(db_dir):
-        path_ = os.path.join(db_path, db_dir[j])
-
-        try:
-            with open(path_, 'rb') as file:
-                embeddings = pickle.load(file)
-                print(file)
-        except (pickle.UnpicklingError, EOFError) as e:
-            print(f"Error loading file {db_dir[j]}: {e}")
-            j += 1
-            continue
-
-        match = face_recognition.compare_faces([embeddings], embeddings_unknown)[0]
-        distance = np.linalg.norm(embeddings - embeddings_unknown)
-        print(distance)
-        print('********************')
-        j += 1
-
-    if match:
-        return db_dir[j - 1][:-7]
-    else:
-        return 'unknown_person'
+    conn = sqlite3.connect('face_db.sqlite')
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM users")
+    records = cursor.fetchall()
+    threshold = 0.6
+    final_name = 'unknown_person'
+    lowest_distance = float('inf')
+    
+    for _, name, embeddings_json in records:
+        embeddings_db = np.array(json.loads(embeddings_json))
+        distance = np.linalg.norm(embeddings_unknown -  embeddings_db)
+        similarity = cosine_similarity([embeddings_db], [embeddings_unknown])[0][0]
+        print(name, " ", similarity, " ", distance)
+        print("********************")
+        if distance < threshold and distance < lowest_distance:
+            final_name = name
+            lowest_distance = distance
+    conn.close()
+    return final_name
+    
