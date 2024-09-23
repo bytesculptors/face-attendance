@@ -69,8 +69,8 @@ def recognize(img):
     for _, name, embeddings_json in records:
         embeddings_db = np.array(json.loads(embeddings_json))
         distance = np.linalg.norm(embeddings_unknown -  embeddings_db)
-        similarity = cosine_similarity([embeddings_db], [embeddings_unknown])[0][0]
-        print(name, " ", similarity, " ", distance)
+        # similarity = cosine_similarity([embeddings_db], [embeddings_unknown])[0][0]
+        print(name, " ", " ", distance)
         print("********************")
         if distance < threshold and distance < lowest_distance:
             final_name = name
