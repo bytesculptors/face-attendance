@@ -20,9 +20,6 @@ class App:
         self.record_button_main_window = util.get_button(self.main_window, 'record', 'green', self.record)
         self.record_button_main_window.place(x=750, y=200)
 
-        # self.logout_button_main_window = util.get_button(self.main_window, 'logout', 'red', self.logout)
-        # self.logout_button_main_window.place(x=750, y=300)
-
         self.register_new_user_button_main_window = util.get_button(self.main_window, 'register new user', 'gray',
                                                                     self.register_new_user, fg='black')
         self.register_new_user_button_main_window.place(x=750, y=300)
@@ -60,21 +57,32 @@ class App:
         if name in ['unknown_person', 'no_persons_found']:
             util.msg_box('Ups...', 'Unknown user. Please register new user or try again.')
         else:
+            if self.has_recorded_in_last_45_minutes(name):
+                util.msg_box('Wait...', 'You have already recorded attendance in the last 45 minutes. Please try again later.')
+                return
             util.msg_box('Recorded successfully !', 'Welcome, {}.'.format(name))
             with open(self.log_path, 'a') as f:
                 f.write('{},{},in\n'.format(name, datetime.datetime.now()))
                 f.close()
+                
+    def has_recorded_in_last_45_minutes(self, name):
+    # Read the log file to check the last record time
+        try:
+            with open(self.log_path, 'r') as f:
+                lines = f.readlines()
+                for line in reversed(lines):  # Iterate from the most recent record
+                    log_name, log_time, _ = line.strip().split(',')
+                    if log_name == name:
+                        last_record_time = datetime.datetime.strptime(log_time, '%Y-%m-%d %H:%M:%S.%f')
+                        time_diff = datetime.datetime.now() - last_record_time
+                        if time_diff < datetime.timedelta(minutes=45):
+                            return True  # The user has recorded attendance within the last 45 minutes
+                        break  # No need to check further once we find the last record for this user
+        except FileNotFoundError:
+            # If log file doesn't exist, no one has recorded attendance yet
+            pass
 
-    # def logout(self):
-    #     name = util.recognize(self.most_recent_capture_arr)
-
-    #     if name in ['unknown_person', 'no_persons_found']:
-    #         util.msg_box('Ups...', 'Unknown user. Please register new user or try again.')
-    #     else:
-    #         util.msg_box('Hasta la vista !', 'Goodbye, {}.'.format(name))
-    #         with open(self.log_path, 'a') as f:
-    #             f.write('{},{},out\n'.format(name, datetime.datetime.now()))
-    #             f.close()
+        return False  # No record found in the last 45 minutes
 
     def register_new_user(self):
         self.register_new_user_window = tk.Toplevel(self.main_window)

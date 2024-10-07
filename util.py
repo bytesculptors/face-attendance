@@ -48,8 +48,6 @@ def msg_box(title, description):
 
 
 def recognize(img):
-    # it is assumed there will be at most 1 match in the db
-
     embeddings_unknown = face_recognition.face_encodings(img)
     print(len(embeddings_unknown))
     print("-----------------------------------")
@@ -69,7 +67,6 @@ def recognize(img):
     for _, name, embeddings_json in records:
         embeddings_db = np.array(json.loads(embeddings_json))
         distance = np.linalg.norm(embeddings_unknown -  embeddings_db)
-        # similarity = cosine_similarity([embeddings_db], [embeddings_unknown])[0][0]
         print(name, " ", " ", distance)
         print("********************")
         if distance < threshold and distance < lowest_distance:
